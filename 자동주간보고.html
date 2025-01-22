@@ -1,144 +1,137 @@
-<button id="updateTableButton" onclick="copyCode()" style="padding: 10px 20px; background-color: #0052CC; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">코드 복사하기</button>
-
-<script>
-function copyCode() {
-    const code = `function formatDate(d) {
-        if (!d) return '';
-        try {
-            let date = new Date();
-            if (d.includes('오늘')) {
-                // Handle 오늘 case
-            } else if (d.includes('어제')) {
-                date.setDate(date.getDate() - 1);
-            } else if (d.includes('요일')) {
-                const dayNames = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
-                const targetDay = dayNames.findIndex(day => d.includes(day));
-                if (targetDay !== -1) {
-                    const today = date.getDay();
-                    let diff = targetDay - today;
-                    if (diff >= 0) diff -= 7;
-                    date.setDate(date.getDate() + diff);
+<button id="updateTableButton" onclick="copyCode()" style="padding: 10px 20px; background-color: #0052CC; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">  코드 복사하기 </button>  
+<script> 
+    function copyCode() {    
+        const code = ` 
+            function formatDate(d) {
+                if (!d) return '';
+                try {
+                    let date = new Date();
+                    if (d.includes('오늘')) {}
+                    else if (d.includes('어제')) {
+                        date.setDate(date.getDate() - 1);
+                    } else if (d.includes('요일')) {
+                        const dayNames = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
+                        const targetDay = dayNames.findIndex(day => d.includes(day));
+                        if (targetDay !== -1) {
+                            const today = date.getDay();
+                            let diff = targetDay - today;
+                            if (diff >= 0) diff -= 7;
+                            date.setDate(date.getDate() + diff);
+                        }
+                    } else if (d.includes('월')) {
+                        const [y, m, day] = d.split('/');
+                        date = new Date('20' + y, parseInt(m) - 1, day.split(' ')[0]);
+                    } else {
+                        date = new Date(d);
+                    }
+                    return \`\${date.getFullYear().toString().slice(2)}/\${String(date.getMonth() + 1).padStart(2, '0')}/\${String(date.getDate()).padStart(2, '0')}\`;
+                } catch (e) {
+                    console.error('Date parsing error:', d, e);
+                    return '';
                 }
-            } else if (d.includes('월')) {
-                const [y, m, day] = d.split('/');
-                date = new Date('20' + y, parseInt(m) - 1, day.split(' ')[0]);
-            } else {
-                date = new Date(d);
             }
-            return `${date.getFullYear().toString().slice(2)}/${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getDate()).padStart(2, '0')}`;
-        } catch (e) {
-            console.error('Date parsing error:', d, e);
-            return '';
-        }
-    }
 
-    function findTableAfterHeader(h) {
-        const parentDoc = window.parent.document;
-        const header = Array.from(parentDoc.querySelectorAll('h3')).find(el => el.textContent.includes(h));
-        if (!header) return null;
-        let next = header.nextElementSibling;
-        while (next) {
-            const table = next.querySelector('.pm-table-wrapper table[data-testid="renderer-table"]');
-            if (table) return table;
-            next = next.nextElementSibling;
-        }
-        return null;
-    }
+            function findTableAfterHeader(h) {
+                const parentDoc = window.parent.document;
+                const header = Array.from(parentDoc.querySelectorAll('h3')).find(el => el.textContent.includes(h));
+                if (!header) return null;
+                let next = header.nextElementSibling;
+                while (next) {
+                    const table = next.querySelector('.pm-table-wrapper table[data-testid="renderer-table"]');
+                    if (table) return table;
+                    next = next.nextElementSibling;
+                }
+                return null;
+            }
 
-    function parseJiraTable() {
-        const parentDoc = window.parent.document;
-        const table = parentDoc.querySelector('.aui');
-        if (!table) return [];
-        const issues = [];
-        table.querySelectorAll('tr:not(:empty):not(:first-child)').forEach(row => {
-            if (row.querySelector('th')) return;
-            const cells = row.querySelectorAll('.jira-macro-table-underline-pdfexport');
-            if (cells.length >= 7) {
-                const statusElement = cells[6].querySelector('.aui-lozenge');
-                issues.push({
-                    summary: cells[0].textContent.trim(),
-                    created: cells[1].textContent.trim(),
-                    updated: cells[2].textContent.trim(),
-                    dueDate: cells[3].textContent.trim(),
-                    assignee: cells[4].textContent.trim(),
-                    priority: cells[5].textContent.trim(),
-                    status: statusElement ? statusElement.textContent.trim() : '',
-                    statusElement: statusElement
+            function parseJiraTable() {
+                const parentDoc = window.parent.document;
+                const table = parentDoc.querySelector('.aui');
+                if (!table) return [];
+                const issues = [];
+                table.querySelectorAll('tr:not(:empty):not(:first-child)').forEach(row => {
+                    if (row.querySelector('th')) return;
+                    const cells = row.querySelectorAll('.jira-macro-table-underline-pdfexport');
+                    if (cells.length >= 7) {
+                        const statusElement = cells[6].querySelector('.aui-lozenge');
+                        issues.push({
+                            summary: cells[0].textContent.trim(),
+                            created: cells[1].textContent.trim(),
+                            updated: cells[2].textContent.trim(),
+                            dueDate: cells[3].textContent.trim(),
+                            assignee: cells[4].textContent.trim(),
+                            priority: cells[5].textContent.trim(),
+                            status: statusElement ? statusElement.textContent.trim() : '',
+                            statusElement: statusElement
+                        });
+                    }
+                });
+                return issues;
+            }
+
+            function determineService(summary) {
+                const summaryLower = summary.toLowerCase();
+                if (summaryLower.includes('휴대폰')) return '휴대폰결제';
+                if (summaryLower.includes('컬처랜드')) return '컬처랜드상품권';
+                if (summaryLower.includes('해피머니')) return '해피머니';
+                return '공통';
+            }
+
+            function determineWorkType(summary) {
+                const summaryLower = summary.toLowerCase();
+                if (summaryLower.includes('batch')) return '배치';
+                if (summaryLower.includes('devops')) return 'DevOps';
+                if (summaryLower.includes('설계')) return '설계';
+                if (summaryLower.includes('분석')) return '분석';
+                return '개발';
+            }
+
+            function appendIssueRows(table, issues) {
+                let tbody = table.querySelector('tbody') || (() => {
+                    const tb = document.createElement('tbody');
+                    table.appendChild(tb);
+                    return tb;
+                })();
+                tbody.querySelectorAll('tr:not(:first-child)').forEach(r => r.remove());
+                issues.sort((a, b) => a.assignee.localeCompare(b.assignee)).forEach(issue => {
+                    const row = window.parent.document.createElement('tr');
+                    [determineService(issue.summary), determineWorkType(issue.summary), {
+                        element: issue.statusElement ? issue.statusElement.cloneNode(true) : window.parent.document.createElement('span')
+                    }, issue.summary.replace(/\\[[^\\]]*\\]/g, '').trim(), issue.assignee, '', formatDate(issue.created), formatDate(issue.dueDate)]
+                    .forEach(content => {
+                        const td = window.parent.document.createElement('td');
+                        if (content && content.element) td.appendChild(content.element);
+                        else td.textContent = content || '';
+                        row.appendChild(td);
+                    });
+                    tbody.appendChild(row);
                 });
             }
-        });
-        return issues;
-    }
 
-    function determineService(summary) {
-        const summaryLower = summary.toLowerCase();
-        if (summaryLower.includes('휴대폰')) return '휴대폰결제';
-        if (summaryLower.includes('컬처랜드')) return '컬처랜드상품권';
-        if (summaryLower.includes('해피머니')) return '해피머니';
-        return '공통';
-    }
+            function appendIssuesToTables() {
+                const issues = parseJiraTable();
+                const currentWeekIssues = issues.filter(i => i.status === '진행 중' || i.status === '완료');
+                const nextWeekIssues = issues.filter(i => i.status === '해야 할 일');
+                const tables = {
+                    current: findTableAfterHeader('금주 업무 진행 사항'),
+                    next: findTableAfterHeader('차주 업무 진행 예정 사항')
+                };
+                if (!tables.current || !tables.next) {
+                    console.error('Tables not found');
+                    return;
+                }
+                appendIssueRows(tables.current, currentWeekIssues);
+                appendIssueRows(tables.next, nextWeekIssues);
+                console.log({ currentWeek: currentWeekIssues.length, nextWeek: nextWeekIssues.length });
+            }
 
-    function determineWorkType(summary) {
-        const summaryLower = summary.toLowerCase();
-        if (summaryLower.includes('batch')) return '배치';
-        if (summaryLower.includes('devops')) return 'DevOps';
-        if (summaryLower.includes('설계')) return '설계';
-        if (summaryLower.includes('분석')) return '분석';
-        return '개발';
-    }
-
-    function appendIssueRows(table, issues) {
-        let tbody = table.querySelector('tbody') || (() => {
-            const tb = document.createElement('tbody');
-            table.appendChild(tb);
-            return tb;
-        })();
-        tbody.querySelectorAll('tr:not(:first-child)').forEach(r => r.remove());
-        issues.sort((a, b) => a.assignee.localeCompare(b.assignee)).forEach(issue => {
-            const row = window.parent.document.createElement('tr');
-            [
-                determineService(issue.summary),
-                determineWorkType(issue.summary),
-                { element: issue.statusElement ? issue.statusElement.cloneNode(true) : window.parent.document.createElement('span') },
-                issue.summary.replace(/\[[^\]]*\]/g, '').trim(),
-                issue.assignee,
-                '',
-                formatDate(issue.created),
-                formatDate(issue.dueDate)
-            ].forEach(content => {
-                const td = window.parent.document.createElement('td');
-                if (content && content.element) td.appendChild(content.element);
-                else td.textContent = content || '';
-                row.appendChild(td);
-            });
-            tbody.appendChild(row);
+            appendIssuesToTables();
+        `;
+        navigator.clipboard.writeText(code).then(() => {
+            alert('코드가 복사되었습니다. 개발자 콘솔에 붙여넣어주세요.');
+        }).catch(err => {
+            console.error('클립보드 복사 실패:', err);
+            alert('클립보드 복사에 실패했습니다.');
         });
     }
-
-    function appendIssuesToTables() {
-        const issues = parseJiraTable();
-        const currentWeekIssues = issues.filter(i => i.status === '진행 중' || i.status === '완료');
-        const nextWeekIssues = issues.filter(i => i.status === '해야 할 일');
-        const tables = {
-            current: findTableAfterHeader('금주 업무 진행 사항'),
-            next: findTableAfterHeader('차주 업무 진행 예정 사항')
-        };
-        if (!tables.current || !tables.next) {
-            console.error('Tables not found');
-            return;
-        }
-        appendIssueRows(tables.current, currentWeekIssues);
-        appendIssueRows(tables.next, nextWeekIssues);
-        console.log({ currentWeek: currentWeekIssues.length, nextWeek: nextWeekIssues.length });
-    }
-
-    appendIssuesToTables();
-`;
-    navigator.clipboard.writeText(code).then(() => {
-        alert('코드가 복사되었습니다. 개발자 콘솔에 붙여넣어주세요.');
-    }).catch(err => {
-        console.error('클립보드 복사 실패:', err);
-        alert('클립보드 복사에 실패했습니다.');
-    });
-}
 </script>
