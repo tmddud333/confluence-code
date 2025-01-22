@@ -18,26 +18,23 @@ function formatDate(d) {
                 if(diff>=0) diff-=7;
                 date.setDate(date.getDate()+diff)
             }
-        } else if(d.match(/\d{2}\/\d{2}\/\d{2}/)) {
+        } else if(d.match(/\\d{2}\\/\\d{2}\\/\\d{2}/)) {
             const [day, month, year] = d.split('/');
             date = new Date(2000 + parseInt(year), parseInt(month) - 1, parseInt(day));
         } else if(d.includes('월')) {
             const parts = d.split('/');
-            if(parts.length >= 2) {
-                const year = parseInt('20' + parts[0]);
-                const month = parseInt(parts[1].replace('월', '')) - 1;
-                const dayPart = parts[2] ? parts[2].split(' ')[0] : '1';
-                const day = parseInt(dayPart);
-                if(!isNaN(year) && !isNaN(month) && !isNaN(day)) {
-                    date = new Date(year, month, day);
-                }
+            const day = parseInt(parts[0]);
+            const month = parseInt(parts[1].replace('월', '')) - 1;
+            const year = parseInt('20' + parts[2].split(' ')[0]);
+            if(!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+                date = new Date(year, month, day);
             }
         } else {
             date = new Date(d)
         }
-        return `${date.getFullYear()}. ${String(date.getMonth()+1).padStart(2,'0')}. ${String(date.getDate()).padStart(2,'0')}`
+        return \`\${date.getFullYear()}. \${String(date.getMonth()+1).padStart(2,'0')}. \${String(date.getDate()).padStart(2,'0')}\`
     } catch(e) {
-        console.error('Date parsing error:',d,e);
+        console.error('Date parsing error:', d, e);
         return ''
     }
 }
@@ -167,37 +164,48 @@ function appendIssuesToTables() {
     const issues = parseJiraTable();
     const today = new Date();
     const monday = new Date(today);
-    monday.setDate(today.getDate()-today.getDay()+1);
-    monday.setHours(0,0,0,0);
+    monday.setDate(today.getDate() - today.getDay() + 1);
+    monday.setHours(0, 0, 0, 0);
 
-    const currentWeekIssues = issues.filter(issue=>{
-        if(issue.status==='진행 중') return true;
-        if(issue.status==='완료') {
-            const updatedDate = new Date(issue.updated);
-            return updatedDate>=monday
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    sunday.setHours(23, 59, 59, 999);
+
+    const currentWeekIssues = issues.filter(issue => {
+        if(issue.status === '진행 중') return true;
+        
+        if(issue.status === '완료' && issue.updated) {
+            const updatedDate = new Date(formatDate(issue.updated).replace(/\\. /g, '-'));
+            return updatedDate >= monday && updatedDate <= sunday;
         }
-        return false
+        
+        if(issue.dueDate) {
+            const dueDate = new Date(formatDate(issue.dueDate).replace(/\\. /g, '-'));
+            return dueDate >= monday && dueDate <= sunday;
+        }
+        
+        return false;
     });
 
-    const nextWeekIssues = issues.filter(i=>i.status==='해야 할 일');
+    const nextWeekIssues = issues.filter(i => i.status === '해야 할 일');
     
     const tables = {
         current: findTableAfterHeader('금주 업무 진행 사항'),
         next: findTableAfterHeader('차주 업무 진행 예정 사항')
     };
     
-    if(!tables.current||!tables.next) {
+    if(!tables.current || !tables.next) {
         console.error('Tables not found');
-        return
+        return;
     }
     
-    appendIssueRows(tables.current,currentWeekIssues);
-    appendIssueRows(tables.next,nextWeekIssues);
+    appendIssueRows(tables.current, currentWeekIssues);
+    appendIssueRows(tables.next, nextWeekIssues);
     
     console.log({
         currentWeek: currentWeekIssues.length,
         nextWeek: nextWeekIssues.length
-    })
+    });
 }
 
 appendIssuesToTables();`;
